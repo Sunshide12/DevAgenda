@@ -13,7 +13,7 @@ const API = {
         const url = `${CONFIG.API_BASE_URL}${endpoint}`;
         const headers = {
             'Content-Type': 'application/json',
-            'X-User-Id': this.userId,
+            'X-User-Id': this.userId || CONFIG.getUserId(),
             ...options.headers
         };
         
@@ -24,16 +24,31 @@ const API = {
         
         try {
             const response = await fetch(url, config);
-            const data = await response.json();
+            
+            // Handle non-JSON responses
+            let data;
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                const text = await response.text();
+                throw new Error(text || `HTTP ${response.status}`);
+            }
             
             if (!response.ok) {
-                throw new Error(data.error || 'Request failed');
+                const errorMsg = data.error || data.message || `Request failed with status ${response.status}`;
+                throw new Error(errorMsg);
             }
             
             return data;
         } catch (error) {
             console.error('API Error:', error);
-            throw error;
+            // Re-throw with more context
+            if (error.message) {
+                throw error;
+            } else {
+                throw new Error(`Network error: ${error.message || 'Unknown error'}`);
+            }
         }
     },
     

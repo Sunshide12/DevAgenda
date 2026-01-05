@@ -31,24 +31,39 @@ router.post('/init', async (req, res) => {
 
         // Create user if doesn't exist
         if (error || !user) {
-            const { data: newUser, error: createError } = await supabase
-                .from('users')
-                .insert([{
-                    id: userId,
-                    github_username: null
-                }])
-                .select()
-                .single();
+            // Check if error is because user doesn't exist (not a database error)
+            const isNotFoundError = error && error.code === 'PGRST116';
+            
+            if (isNotFoundError || !user) {
+                const { data: newUser, error: createError } = await supabase
+                    .from('users')
+                    .insert([{
+                        id: userId
+                        // github_username is optional, can be null
+                    }])
+                    .select()
+                    .single();
 
-            if (createError) {
-                console.error('Error creating user:', createError);
+                if (createError) {
+                    console.error('Error creating user:', createError);
+                    // Return more detailed error for debugging
+                    return res.status(500).json({
+                        success: false,
+                        error: 'Failed to create user',
+                        details: createError.message
+                    });
+                }
+
+                user = newUser;
+            } else {
+                // Some other database error
+                console.error('Error fetching user:', error);
                 return res.status(500).json({
                     success: false,
-                    error: 'Failed to create user'
+                    error: 'Database error',
+                    details: error.message
                 });
             }
-
-            user = newUser;
         }
 
         res.json({

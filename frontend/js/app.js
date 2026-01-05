@@ -99,6 +99,11 @@ function showPage(pageName) {
  */
 async function loadDashboard() {
     try {
+        // Ensure user is initialized first
+        if (!API.userId) {
+            await initializeUser();
+        }
+        
         // Load projects by status
         const response = await API.projects.getByStatus();
         if (response.success) {
@@ -110,18 +115,32 @@ async function loadDashboard() {
             document.getElementById('stats-futuros').textContent = data.futuro?.length || 0;
             
             // Load today's commits
-            const reflection = await API.reflections.get();
-            if (reflection.success) {
-                document.getElementById('stats-commits-hoy').textContent = 
-                    reflection.data.totalCommits || 0;
+            try {
+                const reflection = await API.reflections.get();
+                if (reflection.success) {
+                    document.getElementById('stats-commits-hoy').textContent = 
+                        reflection.data.totalCommits || 0;
+                }
+            } catch (reflectionError) {
+                console.warn('Could not load reflection:', reflectionError);
+                document.getElementById('stats-commits-hoy').textContent = '0';
             }
             
             // Load recent activity
             loadRecentActivity(data);
+        } else {
+            throw new Error(response.error || 'Failed to load projects');
         }
     } catch (error) {
         console.error('Error loading dashboard:', error);
-        showError('Error al cargar el dashboard');
+        const errorMsg = error.message || 'Error al cargar el dashboard';
+        showError(errorMsg);
+        
+        // Set default values on error
+        document.getElementById('stats-en-curso').textContent = '0';
+        document.getElementById('stats-por-hacer').textContent = '0';
+        document.getElementById('stats-futuros').textContent = '0';
+        document.getElementById('stats-commits-hoy').textContent = '0';
     }
 }
 
@@ -970,10 +989,19 @@ async function initializeUser() {
         API.userId = userId;
         
         // Initialize user in database
-        await API.auth.init(userId);
+        const response = await API.auth.init(userId);
+        if (response.success) {
+            console.log('User initialized successfully:', response.data);
+        } else {
+            console.error('Failed to initialize user:', response.error);
+        }
     } catch (error) {
         console.error('Error initializing user:', error);
-        // Don't block the app if initialization fails
+        // Show user-friendly error
+        if (error.message.includes('Failed to create user')) {
+            showError('Error al inicializar usuario. Verifica la conexión con la base de datos.');
+        }
+        // Don't block the app if initialization fails, but log it
     }
 }
 

@@ -1,11 +1,31 @@
--- DevAgenda Database Schema for PostgreSQL (Supabase)
--- Created for professional project management and GitHub commit tracking
+# Instrucciones para Corregir la Base de Datos
 
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+## Problema Identificado
 
--- Users table
-CREATE TABLE IF NOT EXISTS users (
+El esquema original de la base de datos tenía dos problemas:
+1. El campo `id` en la tabla `users` era de tipo UUID, pero el frontend genera IDs como strings (ej: `user_1767649344317_kkztb8krg`)
+2. El campo `github_username` tenía la restricción `NOT NULL`, pero los usuarios se crean antes de conectar GitHub
+
+## Solución
+
+Necesitas ejecutar el script de migración en Supabase para corregir la estructura de la base de datos.
+
+### Opción 1: Si NO tienes datos importantes (Recomendado para empezar de cero)
+
+1. Ve a Supabase Dashboard > SQL Editor
+2. Ejecuta este script completo:
+
+```sql
+-- Eliminar todas las tablas (si existen)
+DROP TABLE IF EXISTS daily_tasks CASCADE;
+DROP TABLE IF EXISTS reports CASCADE;
+DROP TABLE IF EXISTS daily_reflections CASCADE;
+DROP TABLE IF EXISTS commits CASCADE;
+DROP TABLE IF EXISTS projects CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+-- Recrear la tabla users con el esquema correcto
+CREATE TABLE users (
     id VARCHAR(255) PRIMARY KEY,
     github_username VARCHAR(255) UNIQUE,
     github_token TEXT,
@@ -16,8 +36,8 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Projects table
-CREATE TABLE IF NOT EXISTS projects (
+-- Recrear todas las demás tablas
+CREATE TABLE projects (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
@@ -33,8 +53,7 @@ CREATE TABLE IF NOT EXISTS projects (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Commits table
-CREATE TABLE IF NOT EXISTS commits (
+CREATE TABLE commits (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     sha VARCHAR(40) NOT NULL,
@@ -50,8 +69,7 @@ CREATE TABLE IF NOT EXISTS commits (
     UNIQUE(project_id, sha)
 );
 
--- Daily reflections table
-CREATE TABLE IF NOT EXISTS daily_reflections (
+CREATE TABLE daily_reflections (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     reflection_date DATE NOT NULL,
@@ -64,8 +82,7 @@ CREATE TABLE IF NOT EXISTS daily_reflections (
     UNIQUE(user_id, reflection_date)
 );
 
--- Reports table
-CREATE TABLE IF NOT EXISTS reports (
+CREATE TABLE reports (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
@@ -80,8 +97,7 @@ CREATE TABLE IF NOT EXISTS reports (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Daily tasks table (Notion-like organization)
-CREATE TABLE IF NOT EXISTS daily_tasks (
+CREATE TABLE daily_tasks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
@@ -95,7 +111,7 @@ CREATE TABLE IF NOT EXISTS daily_tasks (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes for better performance
+-- Índices
 CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id);
 CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
 CREATE INDEX IF NOT EXISTS idx_commits_project_id ON commits(project_id);
@@ -105,7 +121,7 @@ CREATE INDEX IF NOT EXISTS idx_daily_tasks_user_date ON daily_tasks(user_id, tas
 CREATE INDEX IF NOT EXISTS idx_reports_user_id ON reports(user_id);
 CREATE INDEX IF NOT EXISTS idx_reports_type ON reports(report_type);
 
--- Function to update updated_at timestamp
+-- Función para actualizar updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -114,7 +130,7 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Triggers for updated_at
+-- Triggers
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -126,4 +142,39 @@ CREATE TRIGGER update_daily_reflections_updated_at BEFORE UPDATE ON daily_reflec
 
 CREATE TRIGGER update_daily_tasks_updated_at BEFORE UPDATE ON daily_tasks
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+```
+
+### Opción 2: Si YA tienes datos y quieres preservarlos
+
+Ejecuta el script en `database/migration_fix_users.sql` que migra los datos existentes.
+
+## Verificación
+
+Después de ejecutar el script:
+
+1. Verifica que la tabla `users` existe y tiene la estructura correcta:
+```sql
+SELECT column_name, data_type, is_nullable 
+FROM information_schema.columns 
+WHERE table_name = 'users';
+```
+
+Deberías ver:
+- `id` como `character varying` (VARCHAR)
+- `github_username` como `character varying` con `YES` en is_nullable
+
+2. Prueba crear un usuario manualmente:
+```sql
+INSERT INTO users (id) VALUES ('test_user_123');
+```
+
+Si funciona sin errores, la base de datos está correcta.
+
+## Después de la Migración
+
+1. Recarga la aplicación en Vercel
+2. Limpia el localStorage del navegador (o genera un nuevo ID de usuario)
+3. Intenta usar la aplicación nuevamente
+
+Los errores deberían desaparecer.
 

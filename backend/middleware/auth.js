@@ -32,23 +32,38 @@ async function authenticate(req, res, next) {
 
         // If user doesn't exist, create it
         if (error || !user) {
-            const { data: newUser, error: createError } = await supabase
-                .from('users')
-                .insert([{
-                    id: userId,
-                    github_username: null
-                }])
-                .select()
-                .single();
+            // Check if error is because user doesn't exist (PGRST116 = not found)
+            const isNotFoundError = error && (error.code === 'PGRST116' || error.message?.includes('No rows'));
+            
+            if (isNotFoundError || !user) {
+                const { data: newUser, error: createError } = await supabase
+                    .from('users')
+                    .insert([{
+                        id: userId
+                        // github_username is optional
+                    }])
+                    .select()
+                    .single();
 
-            if (createError) {
-                // If still error, return unauthorized
-                return res.status(401).json({ 
+                if (createError) {
+                    console.error('Error creating user in middleware:', createError);
+                    // If still error, return unauthorized
+                    return res.status(401).json({ 
+                        success: false, 
+                        error: 'Invalid user',
+                        details: createError.message
+                    });
+                }
+                user = newUser;
+            } else {
+                // Some other database error
+                console.error('Database error in auth middleware:', error);
+                return res.status(500).json({ 
                     success: false, 
-                    error: 'Invalid user' 
+                    error: 'Authentication failed',
+                    details: error.message
                 });
             }
-            user = newUser;
         }
 
         // Attach user to request
