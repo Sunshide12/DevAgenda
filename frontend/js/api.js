@@ -94,6 +94,18 @@ const API = {
     },
     
     /**
+     * Auth API
+     */
+    auth: {
+        async init(userId) {
+            return API.request('/auth/init', {
+                method: 'POST',
+                body: JSON.stringify({ userId })
+            });
+        }
+    },
+    
+    /**
      * GitHub API
      */
     github: {

@@ -23,18 +23,32 @@ async function authenticate(req, res, next) {
             });
         }
 
-        // Get user from database
-        const { data: user, error } = await supabase
+        // Get user from database or create if doesn't exist
+        let { data: user, error } = await supabase
             .from('users')
             .select('*')
             .eq('id', userId)
             .single();
 
+        // If user doesn't exist, create it
         if (error || !user) {
-            return res.status(401).json({ 
-                success: false, 
-                error: 'Invalid user' 
-            });
+            const { data: newUser, error: createError } = await supabase
+                .from('users')
+                .insert([{
+                    id: userId,
+                    github_username: null
+                }])
+                .select()
+                .single();
+
+            if (createError) {
+                // If still error, return unauthorized
+                return res.status(401).json({ 
+                    success: false, 
+                    error: 'Invalid user' 
+                });
+            }
+            user = newUser;
         }
 
         // Attach user to request

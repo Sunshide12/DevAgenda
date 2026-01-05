@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initializeApp() {
     setupEventListeners();
     setupNavigation();
-    loadUserSettings();
+    await initializeUser();
     await loadDashboard();
     showPage('dashboard');
 }
@@ -959,6 +959,22 @@ function generateUserId() {
     document.getElementById('user-id').value = newId;
     API.userId = newId;
     showSuccess('Nuevo ID de usuario generado');
+}
+
+/**
+ * Initialize user in database
+ */
+async function initializeUser() {
+    try {
+        const userId = CONFIG.getUserId();
+        API.userId = userId;
+        
+        // Initialize user in database
+        await API.auth.init(userId);
+    } catch (error) {
+        console.error('Error initializing user:', error);
+        // Don't block the app if initialization fails
+    }
 }
 
 /**
