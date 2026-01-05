@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevAgenda - Gestión de Proyectos y Seguimiento de Desarrollo</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-calendar-check"></i> DevAgenda
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-page="dashboard">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="projects">
+                            <i class="bi bi-folder"></i> Proyectos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="reflection">
+                            <i class="bi bi-journal-text"></i> Introspección Diaria
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="reports">
+                            <i class="bi bi-file-earmark-text"></i> Reportes
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="settings">
+                            <i class="bi bi-gear"></i> Configuración
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <!-- Dashboard Page -->
+        <div id="dashboard-page" class="page-content">
+            <div class="row">
+                <div class="col-12">
+                    <h1 class="mb-4">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </h1>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card stat-card bg-primary text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Proyectos en Curso</h5>
+                            <h2 id="stats-en-curso">0</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card stat-card bg-success text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Commits Hoy</h5>
+                            <h2 id="stats-commits-hoy">0</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card stat-card bg-info text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Proyectos por Hacer</h5>
+                            <h2 id="stats-por-hacer">0</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card stat-card bg-warning text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Proyectos Futuros</h5>
+                            <h2 id="stats-futuros">0</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Acciones Rápidas</h5>
+                        </div>
+                        <div class="card-body">
+                            <button class="btn btn-primary me-2" onclick="showPage('projects')">
+                                <i class="bi bi-plus-circle"></i> Nuevo Proyecto
+                            </button>
+                            <button class="btn btn-success me-2" onclick="syncAllProjects()">
+                                <i class="bi bi-arrow-repeat"></i> Sincronizar GitHub
+                            </button>
+                            <button class="btn btn-info" onclick="showPage('reflection')">
+                                <i class="bi bi-journal-text"></i> Ver Introspección de Hoy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Actividad Reciente</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="recent-activity">
+                                <p class="text-muted">Cargando actividad...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Projects Page -->
+        <div id="projects-page" class="page-content" style="display: none;">
+            <div class="row mb-4">
+                <div class="col-12 d-flex justify-content-between align-items-center">
+                    <h1><i class="bi bi-folder"></i> Proyectos</h1>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#projectModal">
+                        <i class="bi bi-plus-circle"></i> Nuevo Proyecto
+                    </button>
+                </div>
+            </div>
+
+            <!-- Project Tabs -->
+            <ul class="nav nav-tabs mb-4" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#por-hacer">
+                        Por Hacer <span class="badge bg-secondary" id="badge-por-hacer">0</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#futuros">
+                        Futuros <span class="badge bg-secondary" id="badge-futuros">0</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#en-curso">
+                        En Curso <span class="badge bg-secondary" id="badge-en-curso">0</span>
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Project Tabs Content -->
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="por-hacer">
+                    <div id="projects-por-hacer" class="row">
+                        <!-- Projects will be loaded here -->
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="futuros">
+                    <div id="projects-futuros" class="row">
+                        <!-- Projects will be loaded here -->
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="en-curso">
+                    <div id="projects-en-curso" class="row">
+                        <!-- Projects will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Detail Page -->
+        <div id="project-detail-page" class="page-content" style="display: none;">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <button class="btn btn-secondary mb-3" onclick="showPage('projects')">
+                        <i class="bi bi-arrow-left"></i> Volver a Proyectos
+                    </button>
+                    <h1 id="project-detail-title"></h1>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Commits por Día</h5>
+                            <button class="btn btn-sm btn-primary" onclick="syncCurrentProject()">
+                                <i class="bi bi-arrow-repeat"></i> Sincronizar
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="commits-by-day">
+                                <!-- Commits will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Estadísticas</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="project-stats">
+                                <!-- Stats will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reflection Page -->
+        <div id="reflection-page" class="page-content" style="display: none;">
+            <div class="row">
+                <div class="col-12">
+                    <h1 class="mb-4">
+                        <i class="bi bi-journal-text"></i> Introspección Diaria
+                    </h1>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Mi Día de Trabajo - <span id="reflection-date"></span></h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="reflection-commits">
+                                <!-- Commits will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Mi Reflexión</h5>
+                        </div>
+                        <div class="card-body">
+                            <textarea 
+                                id="reflection-content" 
+                                class="form-control" 
+                                rows="8"
+                                placeholder="Escribe tu reflexión sobre el día de trabajo... ¿Qué lograste? ¿Cómo te sientes? ¿Qué aprendiste?"
+                            ></textarea>
+                            <div class="mt-3">
+                                <label class="form-label">¿Cómo te sientes hoy?</label>
+                                <select id="reflection-feeling" class="form-select">
+                                    <option value="">Seleccionar...</option>
+                                    <option value="excelente">Excelente</option>
+                                    <option value="bien">Bien</option>
+                                    <option value="regular">Regular</option>
+                                    <option value="cansado">Cansado</option>
+                                    <option value="frustrado">Frustrado</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary mt-3" onclick="saveReflection()">
+                                <i class="bi bi-save"></i> Guardar Reflexión
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Resumen del Día</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="reflection-summary">
+                                <!-- Summary will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Page -->
+        <div id="reports-page" class="page-content" style="display: none;">
+            <div class="row mb-4">
+                <div class="col-12 d-flex justify-content-between align-items-center">
+                    <h1><i class="bi bi-file-earmark-text"></i> Reportes</h1>
+                    <div>
+                        <button class="btn btn-primary me-2" onclick="generateWeeklyReport()">
+                            <i class="bi bi-calendar-week"></i> Reporte Semanal
+                        </button>
+                        <button class="btn btn-success" onclick="generateMonthlyReport()">
+                            <i class="bi bi-calendar-month"></i> Reporte Mensual
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Reportes Generados</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="reports-list">
+                                <!-- Reports will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Detail Modal -->
+        <div class="modal fade" id="reportModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Reporte Detallado</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="report-modal-content">
+                        <!-- Report content will be loaded here -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="button" class="btn btn-primary" onclick="printReport()">
+                            <i class="bi bi-printer"></i> Imprimir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Page -->
+        <div id="settings-page" class="page-content" style="display: none;">
+            <div class="row">
+                <div class="col-12">
+                    <h1 class="mb-4">
+                        <i class="bi bi-gear"></i> Configuración
+                    </h1>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Conexión con GitHub</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">GitHub Personal Access Token</label>
+                                <input 
+                                    type="password" 
+                                    id="github-token" 
+                                    class="form-control" 
+                                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                                >
+                                <small class="form-text text-muted">
+                                    Necesitas crear un token en GitHub con permisos de repositorio.
+                                    <a href="https://github.com/settings/tokens" target="_blank">Crear token aquí</a>
+                                </small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Usuario de GitHub</label>
+                                <input 
+                                    type="text" 
+                                    id="github-username" 
+                                    class="form-control" 
+                                    placeholder="Sunshide12"
+                                >
+                            </div>
+                            <button class="btn btn-primary" onclick="connectGitHub()">
+                                <i class="bi bi-link-45deg"></i> Conectar GitHub
+                            </button>
+                            <div id="github-status" class="mt-3"></div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Usuario</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">ID de Usuario</label>
+                                <input 
+                                    type="text" 
+                                    id="user-id" 
+                                    class="form-control" 
+                                    readonly
+                                >
+                                <small class="form-text text-muted">
+                                    Este ID se usa para autenticación. Guárdalo para futuras sesiones.
+                                </small>
+                            </div>
+                            <button class="btn btn-secondary" onclick="generateUserId()">
+                                <i class="bi bi-arrow-clockwise"></i> Generar Nuevo ID
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Modal -->
+    <div class="modal fade" id="projectModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Proyecto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="project-form">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre del Proyecto</label>
+                            <input type="text" class="form-control" id="project-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" id="project-description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" id="project-status" required>
+                                <option value="POR_HACER">Por Hacer</option>
+                                <option value="FUTURO">Futuro</option>
+                                <option value="EN_CURSO">En Curso</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Repositorio de GitHub (opcional)</label>
+                            <select class="form-select" id="project-repo">
+                                <option value="">Seleccionar repositorio...</option>
+                            </select>
+                            <small class="form-text text-muted">
+                                Primero conecta tu cuenta de GitHub en Configuración
+                            </small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveProject()">Guardar Proyecto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
+
